@@ -1,30 +1,33 @@
+/* 
+      藍牙範例                     © 華夏科大電子系 吳宗憲
+      本範例可用 AT Command 來設定藍牙 HC-06
+      可搭配ABB Car 操作，成為藍牙遙控車
+*/
+//藍牙的TX腳位請連結------Arduino 的D10腳位
+//藍牙的RX腳位請連結------Arduino 的D11腳位
+
 #include <SoftwareSerial.h>
-#include <Wire.h>
-SoftwareSerial I2CBT(10,11);
-byte serialA;
+const byte Txpin=11;
+const byte Rxpin=10;
+SoftwareSerial BT(Rxpin,Txpin); 
+char val;
 
-void setup(){
+void setup() 
+{ 
+  BT.begin(9600);   
   Serial.begin(9600);
-  I2CBT.begin(9600);
-}
+  Serial.println("BT is ready");
+}  
+void loop() 
+{ 
+  if (BT.available()){
+    val = BT.read();
+    Serial.print(val);
+  }
 
-void loop (){
-    byte Data[3];
-    byte cmmd[20];
-    int insize;
-    char str[256];
-    int i=analogRead(A0);//read sensor value
-    serialA=I2CBT.read();
-    Data[0]='a';
-    Data[1]=i/256;
-    Data[2]=i%256;
-    sprintf(str,"i: %d 0: %d 1: %d 2: %d",i,Data[0],Data[1],Data[2]);
-     Serial.println(str);
-     if (serialA == 49){
-         for(int j=0;j<3;j++)
-         I2CBT.write(Data[j]);
-         
-         serialA=0;
-      } 
-  //delay(100);    
+  if (Serial.available()){
+    val = Serial.read();
+    Serial.print(val);
+    BT.print(val);
+  }
 }
