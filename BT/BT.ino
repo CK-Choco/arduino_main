@@ -2,12 +2,11 @@
 #include <Wire.h>
 SoftwareSerial I2CBT(10,11);
 byte serialA;
-void setup(){
 
+void setup(){
   Serial.begin(9600);
   I2CBT.begin(9600);
 }
-///////////////////main///////////////////
 
 void loop (){
     byte Data[3];
