@@ -1,6 +1,10 @@
 // 程式庫
-#include <Wire.h> // I2C程式庫
-#include <LiquidCrystal_I2C.h> // LCD_I2C模組程式庫
+#include <Wire.h> // I2C函式庫
+#include <LiquidCrystal_I2C.h> // LCD_I2C函式庫
+#include <Servo.h> // 伺服馬達函式庫
+// Servo
+Servo myservo;  // 建立SERVO物件
+Servo myservo1;  // 建立SERVO物件
 // BT
 #include <SoftwareSerial.h>
 const byte Txpin=11;
@@ -12,9 +16,11 @@ char val;
 #define AT_PIN A3// connect AT
 #define ARDUINO_WORK_VOLTAGE 5.0
 // LCD
-LiquidCrystal_I2C lcd(0x27, 20, 2); // LCD I2C位址，默認為0x27或0x3F，依據背板的晶片不同而有差異，16、2為LCD顯示器大小。
+LiquidCrystal_I2C lcd(0x27, 20, 2);
 
 void setup() {
+  myservo.attach(3);
+  myservo1.attach(4);
   BT.begin(9600);
   Serial.begin(9600);
   Serial.println("BT就緒");
@@ -23,17 +29,6 @@ void setup() {
 }
 
 void loop() {
-  //BT
-  if (BT.available()){
-    val = BT.read();
-    Serial.print(val);
-  }
-
-  if (Serial.available()){
-    val = Serial.read();
-    Serial.print(val);
-    BT.print(val);
-  }
   //LCD
   int x = analogRead(A0);
   int y = analogRead(A1);
@@ -43,21 +38,15 @@ void loop() {
   double voltage = v * (ARDUINO_WORK_VOLTAGE / 1023.0) * 5;
   double current = a * (ARDUINO_WORK_VOLTAGE / 1023.0);
   w=voltage*current;
+  int lz=0;
+  lz=x-y;
   int z=0;
   int z1=0;
   z1=x+y;
   z=z1/2;
-  //z=x-y;
-  // Serial顯示
-  //Serial.println("X:");
-  //Serial.println(x);
-  //Serial.println("Y:");
-  //Serial.println(y);
-  //Serial.println("Z:");
-  //Serial.println(z);
   // LCD顯示
   lcd.clear();
-  lcd.setCursor(0, 0); // (colum, row)從第一排的第三個位置開始顯示
+  lcd.setCursor(0, 0);
   lcd.print("V:");
   lcd.setCursor(2, 0);
   lcd.print(voltage);
@@ -65,15 +54,23 @@ void loop() {
   lcd.print("A:");
   lcd.setCursor(10, 0);
   lcd.print(current);
-  lcd.setCursor(0, 1); // (colum,row)從第二排第三格位置開始顯示
+  lcd.setCursor(0, 1);
   lcd.print("L:"); 
-  lcd.setCursor(2, 1); // (colum,row)從第二排第三格位置開始顯示
+  lcd.setCursor(2, 1);
   lcd.print(z);
   lcd.setCursor(8, 1);
   lcd.print("W:");
   lcd.setCursor(10, 1);
   lcd.print(w);
-  
-  delay(500);
-
+  // 藍芽傳輸
+  String data = String(voltage) + " " + String(current) + " " + String(z) + " " + String(w);
+  BT.print(data);
+  // 伺服馬達
+  int s=90;
+  int s1,s2;
+  s1=s-lz;
+  s2=s+lz;
+  myservo.write(s1);
+  myservo1.write(s2);
+  delay(950);
 }
