@@ -1,32 +1,20 @@
 // 程式庫
 #include <Wire.h> // I2C函式庫
 #include <LiquidCrystal_I2C.h> // LCD_I2C函式庫
-// #include <Servo.h> // 伺服馬達函式庫
-
 // BT
 #include <SoftwareSerial.h>
 const byte Txpin=11;
 const byte Rxpin=10;
 SoftwareSerial BT(Rxpin,Txpin); 
 char val;
-
 // 電壓電流
 #define VT_PIN A2 // connect VT
 #define AT_PIN A3// connect AT
 #define ARDUINO_WORK_VOLTAGE 5.0
-
-/*
-// Servo
-Servo myservo;  // 建立SERVO物件
-Servo myservo1;  // 建立SERVO物件
-*/
-
 // LCD
 LiquidCrystal_I2C lcd(0x27, 20, 2);
 
-void setup() {
-  //myservo.attach(0);
-  //myservo1.attach(1);
+void setup() {;
   BT.begin(9600);
   Serial.begin(9600);
   Serial.println("BT就緒");
@@ -44,8 +32,6 @@ void loop() {
   double voltage = v * (ARDUINO_WORK_VOLTAGE / 1023.0) * 5;
   double current = a * (ARDUINO_WORK_VOLTAGE / 1023.0);
   w=voltage*current;
-  int lz=0;
-  lz=x-y;
   int z=0;
   int z1=0;
   z1=x+y;
@@ -68,20 +54,9 @@ void loop() {
   lcd.print("W:");
   lcd.setCursor(10, 1);
   lcd.print(w);
+  
   // 藍芽傳輸
   String data = String(voltage) + " " + String(current) + " " + String(z) + " " + String(w);
   BT.print(data);
-  //Sup(lz);
   delay(950);
 }
-/*
-void Sup(int lz){
-  // 伺服馬達
-  int s=90;
-  int s1,s2;
-  s1=s-lz;
-  s2=s+lz;
-  myservo.write(s1);
-  myservo1.write(s2);
-  delay(5000);
-}*/
