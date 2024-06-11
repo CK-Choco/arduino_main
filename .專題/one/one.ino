@@ -1,7 +1,24 @@
+/*
+腳位:
+  D:
+    10 BT_TXD
+    11 BT_RXD
+    12 myservo
+    13 myservo1
+    20 LCB sda
+    21 LCB scl
+  A:
+    A0 光敏電阻X
+    A1 光敏電阻Y
+    A2 電壓PT
+    A3 電流AT
+    A4 位移開關
+    A5 位移開關
+*/
 // 程式庫
 #include <Wire.h> // I2C函式庫
 #include <LiquidCrystal_I2C.h> // LCD_I2C函式庫
-// #include <Servo.h> // 伺服馬達函式庫
+#include <Servo.h> // 伺服馬達函式庫
 
 // BT
 #include <SoftwareSerial.h>
@@ -15,41 +32,44 @@ char val;
 #define AT_PIN A3// connect AT
 #define ARDUINO_WORK_VOLTAGE 5.0
 
-/*
 // Servo
 Servo myservo;  // 建立SERVO物件
 Servo myservo1;  // 建立SERVO物件
-*/
 
 // LCD
 LiquidCrystal_I2C lcd(0x27, 20, 2);
 
 void setup() {
-  //myservo.attach(0);
-  //myservo1.attach(1);
+  myservo.attach(12);      // 設3腳位為X
+  myservo1.attach(13);     // 設4腳位為Y
   BT.begin(9600);
   Serial.begin(9600);
   Serial.println("BT就緒");
   lcd.init();
   lcd.backlight();
+  lcd.print("Setup");
+  myservo.write(45);     //設X預設為45度角
+  myservo1.write(135);   //設Y預設為135度角
 }
 
 void loop() {
-  //LCD
   int x = analogRead(A0);
   int y = analogRead(A1);
   int v = analogRead(VT_PIN);
   int a = analogRead(AT_PIN);
   int w;
-  double voltage = v * (ARDUINO_WORK_VOLTAGE / 1023.0) * 5;
-  double current = a * (ARDUINO_WORK_VOLTAGE / 1023.0);
+  int b=45,c=135,d=(x-y)/11;
+  double voltage = v * (ARDUINO_WORK_VOLTAGE / 1024.0) * 5;
+  double current = a * (ARDUINO_WORK_VOLTAGE / 1024.0);
   w=voltage*current;
-  int lz=0;
-  lz=x-y;
   int z=0;
-  int z1=0;
-  z1=x+y;
-  z=z1/2;
+  z=(x+y)/2;
+  LCDS(voltage,current,z,w);
+  BTS(voltage,current,z,w);
+  Sup(b,c,d,x,y);
+  delay(950);
+}
+void LCDS(double voltage,double current,int z,int w){
   // LCD顯示
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -68,20 +88,29 @@ void loop() {
   lcd.print("W:");
   lcd.setCursor(10, 1);
   lcd.print(w);
+}
+
+void BTS(double voltage,double current,int z,int w){
   // 藍芽傳輸
   String data = String(voltage) + " " + String(current) + " " + String(z) + " " + String(w);
   BT.print(data);
-  //Sup(lz);
-  delay(950);
 }
-/*
-void Sup(int lz){
+
+void Sup(int b,int c,int d,int x,int y){
   // 伺服馬達
-  int s=90;
-  int s1,s2;
-  s1=s-lz;
-  s2=s+lz;
-  myservo.write(s1);
-  myservo1.write(s2);
-  delay(5000);
-}*/
+  if(d<0){
+    d=abs(d);
+  }
+  if((b>45)&&(c<45)){
+    b=b-d;//x
+    c=c+d;//y
+  }
+  else{
+    b=b+d;//x
+    c=c-d;//y
+  }
+  myservo.write(b); // x
+  myservo1.write(c); // y
+  //Serial.println(d);
+  delay(1000);
+}
