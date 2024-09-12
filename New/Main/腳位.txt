@@ -1,0 +1,6 @@
+ GPIO 0~15不使用
+ GPIO 1(TX0) 3(RX0) 藍芽
+ GPIO 16~39使用
+ GPIO 16 數位輸出
+ GPIO 21 22 IIC_I2C數據腳
+ GPIO 34 35 36 39 只輸入 (電壓電流)
