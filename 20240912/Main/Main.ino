@@ -7,12 +7,10 @@
  GPIO 34 35 36 39 只輸入 (電壓電流)
 */
 // 數據庫
-#include <SoftwareSerial.h> // 藍芽
+#include <BluetoothSerial.h>  // 藍芽
 
 // 藍芽
-const byte Txpin=11;
-const byte Rxpin=10;
-SoftwareSerial BT(Rxpin,Txpin);
+BluetoothSerial SerialBT;
 
 // 電壓電流
 #define VT0_PIN 34
@@ -22,11 +20,13 @@ SoftwareSerial BT(Rxpin,Txpin);
 #define ARDUINO_WORK_VOLTAGE 5.0
 
 void setup() {
+  Serial.begin(9600);
+  SerialBT.begin("ESP32_BT"); //藍牙顯示名稱，可自行更改，需避免與他人重複命名
   Wifi.mode(WIFI_OFF);
 
 }
 
 void loop() {
-
+  SerialBT.write(#輸出內容#);
   
 }
