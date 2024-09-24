@@ -21,21 +21,21 @@ unsigned long startTime = millis();
 #define CLK 25      //旋轉編碼器 CLK 連接 Arduino pin 25
 #define DT  26      //旋轉編碼器 DT 連接 Arduino pin 26
 #define SW  27      //旋轉編碼器 SW 連接 Arduino pin 27
-int pin=2;           //定義一些整數；
+int pin=25;           //定義一些整數；
 int count = 0;
 int lastCLK = 0;     //lastCLK 為旋轉編碼器 CLK 預設狀態 =0
+int currentPage = 1; // 追踪當前顯示的頁面
 
 void setup() {
-  u8g2.begin();u8g2.enableUTF8Print();  //啟用UTF8文字的功能
+  u8g2.begin(); u8g2.enableUTF8Print();  //啟用UTF8文字的功能
   Serial.begin(115200);
   SerialBT.begin("ESP32_BT");
   pinMode(PIR_PIN, INPUT);
   //旋鈕編碼
-  pinMode(SW, INPUT);      //Arduino 預備讀入旋轉編碼器 CLK, DT, and SW 狀態 
+  pinMode(SW, INPUT);      
   digitalWrite(SW, HIGH);  //旋轉編碼器按鍵 SW為上拉電阻模式
   pinMode(CLK, INPUT);
   pinMode(DT, INPUT);
-  //設置系統岔斷模式，當pin 2 輸入狀態有改變( CHANGE ) 時，呼叫副程式 ClockChanged() 
   attachInterrupt(digitalPinToInterrupt(pin), ClockChanged, CHANGE); 
 }
 
@@ -43,99 +43,71 @@ void loop() {
   // 開機後時間
   int secs = (millis() - startTime) / 1000;
   // 濕溫度
-  float temperature = 0;float humidity = 0;
+  float temperature = 0, humidity = 0;
   int err = SimpleDHTErrSuccess;
   if ((err = dht22.read2(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
     Serial.print("DHT22讀取失敗, Error="); Serial.print(SimpleDHTErrCode(err));
-    Serial.print(","); Serial.println(SimpleDHTErrDuration(err)); delay(2000);
+    Serial.print(","); Serial.println(SimpleDHTErrDuration(err)); 
+    delay(2000);
     return;
   }
+  
   // BT傳輸
-  String data = String(temperature) + ";" + String(humidity) + ";" + String(secs);SerialBT.println(data);
-  // OLED
-  u8g2.setFont(u8g2_font_unifont_t_chinese1); //使用我們做好的字型
-  u8g2.firstPage();
-  do {
-    //溫度
-    u8g2.setCursor(0, 14);u8g2.print((float)temperature);
-    u8g2.setCursor(45, 14);u8g2.print("*C");
-    //濕度
-    u8g2.setCursor(0, 35);u8g2.print((float)humidity);
-    u8g2.setCursor(45, 35);u8g2.print("*RH%"); 
-    //時間  
-    u8g2.setCursor(0, 60);u8g2.print(secs);
-    u8g2.setCursor(45, 60);u8g2.print("s");
-  } while ( u8g2.nextPage() );
+  String data = String(temperature) + ";" + String(humidity) + ";" + String(secs);
+  SerialBT.println(data);
+  
   // 紅外
-  int moving = digitalRead(PIR_PIN); //讀取D4是否有偵測到物體移動
-  if(moving==HIGH){ //如果有物體移動
+  int moving = digitalRead(PIR_PIN);
+  if (moving == HIGH) { 
     Serial.println("有東西在動！");
     delay(2000);  
-  }else{
+  } else {
     Serial.println("瞎了！"); 
-    } 
-  // Debug
+  }
   
+  // Debug
   Serial.println("=================================");
   Serial.print("樣品 OK ");
   Serial.print((float)temperature); Serial.print(" C, ");
   Serial.print((float)humidity); Serial.print(" RH%, ");
   Serial.print(secs); Serial.println(" s");
+
+  // 更新OLED
+  OLEDOutput(currentPage, temperature, humidity, secs);
   
-  
-  delay(1000);
+  delay(750);
 }
 
-void OLEDOutput(int value)   
-{
-  if (value >= 1 && value <= 10) {
-    switch(value) {
-      case 1: 
-        
-        break;
-      case 2:
-        
-        break;
-      case 3:
-        
-        break;
-      case 4:
-        
-        break;
-     case 5:
-        
-        break;
-      case 6:
-        
-        break;
-      case 7:
-        
-        break;
-      case 8:
-        
-        break;
-      case 9:
-             
-        break;   
-      case 10:
-               
-        break;           
+void OLEDOutput(int page, float temperature, float humidity, int secs) {
+  u8g2.setFont(u8g2_font_unifont_t_chinese1); // 使用字型
+  u8g2.firstPage();
+  do {
+    if (page == 1) {
+      // 顯示當前數據
+      u8g2.setCursor(0, 14); u8g2.print("溫度"); u8g2.setCursor(45, 14); u8g2.print(temperature);
+      u8g2.setCursor(0, 32); u8g2.print("濕度"); u8g2.setCursor(45, 32); u8g2.print(humidity); 
+      u8g2.setCursor(0, 50); u8g2.print("時間"); u8g2.setCursor(45, 50); u8g2.print(secs);
+    } else if (page == 2) {
+      // 顯示標題
+      u8g2.setCursor(0, 14); u8g2.print("電壓"); u8g2.setCursor(45, 14); u8g2.print("V");
+      u8g2.setCursor(0, 32); u8g2.print("電流"); u8g2.setCursor(45, 32); u8g2.print("A"); 
+      u8g2.setCursor(0, 50); u8g2.print("時間"); u8g2.setCursor(45, 50); u8g2.print("s");
     }
-  }
+  } while (u8g2.nextPage());
 }
 
-void ClockChanged() 
-{   
+void ClockChanged() {   
   int clkValue = digitalRead(CLK);
   int dtValue = digitalRead(DT);  
-  if (lastCLK != clkValue)
-  {
+  if (lastCLK != clkValue) {
     lastCLK = clkValue;
-    count += (clkValue != dtValue ? 1 : -1); 
+    // 根据旋转方向更新页面
+    currentPage += (clkValue != dtValue ? 1 : -1); 
+    // 确保当前页面在有效范围内
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > 2) currentPage = 2;
 
-    Serial.print("count:");
-    Serial.println(count);
-    int rcount = count/2;  
-    OLEDOutput(rcount); 
+    Serial.print("Current Page: ");
+    Serial.println(currentPage);
   }
 }
