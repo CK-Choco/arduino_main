@@ -18,13 +18,17 @@ unsigned long startTime = millis();
 // 紅外
 #define PIR_PIN 23   //紅外OUT腳
 // 旋鈕編碼
-#define CLK 25      //旋轉編碼器 CLK 連接 Arduino pin 25
-#define DT  26      //旋轉編碼器 DT 連接 Arduino pin 26
-#define SW  27      //旋轉編碼器 SW 連接 Arduino pin 27
+#define CLK 25      //旋轉編碼器 CLK 連接 ESP32 pin 25
+#define DT  26      //旋轉編碼器 DT 連接 ESP32 pin 26
+#define SW  27      //旋轉編碼器 SW 連接 ESP32 pin 27
 int pin=25;           //定義一些整數；
 int count = 0;
 int lastCLK = 0;     //lastCLK 為旋轉編碼器 CLK 預設狀態 =0
 int currentPage = 1; // 追踪當前顯示的頁面
+// 電壓電流
+#define VT_PIN 16
+#define AT_PIN 17
+#define ARDUINO_WORK_VOLTAGE 5.0
 
 void setup() {
   u8g2.begin(); u8g2.enableUTF8Print();  //啟用UTF8文字的功能
@@ -42,6 +46,11 @@ void setup() {
 void loop() {
   // 開機後時間
   int secs = (millis() - startTime) / 1000;
+  // 電壓電流
+  int v = analogRead(VT_PIN);
+  int a = analogRead(AT_PIN);
+  int w;
+  double voltage = v * (ARDUINO_WORK_VOLTAGE / 1024) * 5; double current = a * (ARDUINO_WORK_VOLTAGE / 1024); w =  voltage*current;
   // 濕溫度
   float temperature = 0, humidity = 0;
   int err = SimpleDHTErrSuccess;
@@ -53,14 +62,14 @@ void loop() {
   }
   
   // BT傳輸
-  String data = String(temperature) + ";" + String(humidity) + ";" + String(secs);
+  String data = String(temperature) + ";" + String(humidity) + ";" + String(secs) + ";" + String(voltage) + ";" + String(current) + ";" + String(w);
   SerialBT.println(data);
   
   // 紅外
   int moving = digitalRead(PIR_PIN);
   if (moving == HIGH) { 
     Serial.println("有東西在動！");
-    delay(2000);  
+    //delay(2000);  
   } else {
     Serial.println("瞎了！"); 
   }
@@ -73,12 +82,12 @@ void loop() {
   Serial.print(secs); Serial.println(" s");
 
   // 更新OLED
-  OLEDOutput(currentPage, temperature, humidity, secs);
+  OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w);
   
   delay(750);
 }
 
-void OLEDOutput(int page, float temperature, float humidity, int secs) {
+void OLEDOutput(int page, float temperature, float humidity, int secs, double voltage, double current, int w) {
   u8g2.setFont(u8g2_font_unifont_t_chinese1); // 使用字型
   u8g2.firstPage();
   do {
@@ -89,9 +98,9 @@ void OLEDOutput(int page, float temperature, float humidity, int secs) {
       u8g2.setCursor(0, 50); u8g2.print("時間"); u8g2.setCursor(45, 50); u8g2.print(secs);
     } else if (page == 2) {
       // 顯示標題
-      u8g2.setCursor(0, 14); u8g2.print("電壓"); u8g2.setCursor(45, 14); u8g2.print("V");
-      u8g2.setCursor(0, 32); u8g2.print("電流"); u8g2.setCursor(45, 32); u8g2.print("A"); 
-      u8g2.setCursor(0, 50); u8g2.print("時間"); u8g2.setCursor(45, 50); u8g2.print("s");
+      u8g2.setCursor(0, 14); u8g2.print("電壓"); u8g2.setCursor(45, 14); u8g2.print(voltage);
+      u8g2.setCursor(0, 32); u8g2.print("電流"); u8g2.setCursor(45, 32); u8g2.print(current); 
+      u8g2.setCursor(0, 50); u8g2.print("W"); u8g2.setCursor(45, 50); u8g2.print(w);
     }
   } while (u8g2.nextPage());
 }
