@@ -28,6 +28,8 @@ int currentPage = 1; // 追踪當前顯示的頁面
 // 電壓電流
 #define VT_PIN 16
 #define AT_PIN 17
+#define BVT_PIN 18
+#define BAT_PIN 19
 #define ARDUINO_WORK_VOLTAGE 5.0
 
 void setup() {
@@ -46,11 +48,15 @@ void setup() {
 void loop() {
   // 開機後時間
   int secs = (millis() - startTime) / 1000;
-  // 電壓電流
+  // 電源-電壓電流
   int v = analogRead(VT_PIN);
   int a = analogRead(AT_PIN);
-  int w;
+  // 電池-電壓電流
+  int bv = analogRead(BVT_PIN);
+  int ba = analogRead(BAT_PIN);
+  int w,bw,z=0;
   double voltage = v * (ARDUINO_WORK_VOLTAGE / 1024) * 5; double current = a * (ARDUINO_WORK_VOLTAGE / 1024); w =  voltage*current;
+  double bvoltage = bv * (ARDUINO_WORK_VOLTAGE / 1024) * 5; double bcurrent = ba * (ARDUINO_WORK_VOLTAGE / 1024); bw =  bvoltage*bcurrent;
   // 濕溫度
   float temperature = 0, humidity = 0;
   int err = SimpleDHTErrSuccess;
@@ -61,8 +67,8 @@ void loop() {
     return;
   }
   
-  // BT傳輸
-  String data = String(temperature) + ";" + String(humidity) + ";" + String(secs) + ";" + String(voltage) + ";" + String(current) + ";" + String(w);
+  // BT傳輸(電源-電壓電流瓦數=>電池電壓電流瓦數=>日照溫度濕度)
+  String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (z) + ";" + String (temperature) + ";" + String (humidity);
   SerialBT.println(data);
   
   // 紅外
@@ -75,32 +81,39 @@ void loop() {
   }
   
   // Debug
+  /*
   Serial.println("=================================");
   Serial.print("樣品 OK ");
   Serial.print((float)temperature); Serial.print(" C, ");
   Serial.print((float)humidity); Serial.print(" RH%, ");
   Serial.print(secs); Serial.println(" s");
-
+  */
+  
   // 更新OLED
-  OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w);
+  OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w, bvoltage, bcurrent, bw);
   
   delay(750);
 }
 
-void OLEDOutput(int page, float temperature, float humidity, int secs, double voltage, double current, int w) {
+void OLEDOutput(int page, float temperature, float humidity, int secs, double voltage, double current, int w, double bvoltage, double bcurrent, int bw) {
   u8g2.setFont(u8g2_font_unifont_t_chinese1); // 使用字型
   u8g2.firstPage();
   do {
     if (page == 1) {
-      // 顯示當前數據
+      // 第一頁
       u8g2.setCursor(0, 14); u8g2.print("溫度"); u8g2.setCursor(45, 14); u8g2.print(temperature);
       u8g2.setCursor(0, 32); u8g2.print("濕度"); u8g2.setCursor(45, 32); u8g2.print(humidity); 
       u8g2.setCursor(0, 50); u8g2.print("時間"); u8g2.setCursor(45, 50); u8g2.print(secs);
     } else if (page == 2) {
-      // 顯示標題
+      // 第二頁
       u8g2.setCursor(0, 14); u8g2.print("電壓"); u8g2.setCursor(45, 14); u8g2.print(voltage);
       u8g2.setCursor(0, 32); u8g2.print("電流"); u8g2.setCursor(45, 32); u8g2.print(current); 
       u8g2.setCursor(0, 50); u8g2.print("W"); u8g2.setCursor(45, 50); u8g2.print(w);
+    } else if (page == 3) {
+      // 第三頁
+      u8g2.setCursor(0, 14); u8g2.print("b電壓"); u8g2.setCursor(45, 14); u8g2.print(bvoltage);
+      u8g2.setCursor(0, 32); u8g2.print("b電流"); u8g2.setCursor(45, 32); u8g2.print(bcurrent); 
+      u8g2.setCursor(0, 50); u8g2.print("bW"); u8g2.setCursor(45, 50); u8g2.print(bw);
     }
   } while (u8g2.nextPage());
 }
@@ -110,11 +123,10 @@ void ClockChanged() {
   int dtValue = digitalRead(DT);  
   if (lastCLK != clkValue) {
     lastCLK = clkValue;
-    // 根据旋转方向更新页面
+    // 根據旋轉放向上下頁
     currentPage += (clkValue != dtValue ? 1 : -1); 
-    // 确保当前页面在有效范围内
-    if (currentPage < 1) currentPage = 1;
-    if (currentPage > 2) currentPage = 2;
+    // 確保當前頁面在有效範圍
+    currentPage = constrain(currentPage, 1, 3);
 
     Serial.print("Current Page: ");
     Serial.println(currentPage);
