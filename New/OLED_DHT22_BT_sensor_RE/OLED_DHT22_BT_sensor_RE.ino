@@ -38,6 +38,10 @@ void setup() {
   u8g2.begin(); u8g2.enableUTF8Print();  //啟用UTF8文字的功能
   Serial.begin(115200);
   SerialBT.begin("ESP32_BT");
+  pinMode(VT_PIN, INPUT);
+  pinMode(AT_PIN, INPUT);
+  pinMode(BVT_PIN, INPUT);
+  pinMode(BAT_PIN, INPUT);
   pinMode(PIR_PIN, INPUT);
   pinMode(relayPin, OUTPUT);
   digitalWrite(relayPin, HIGH);
@@ -59,12 +63,22 @@ void loop() {
   int bv = analogRead(BVT_PIN);
   int ba = analogRead(BAT_PIN);
   int w,bw,z=0;
-  double voltage = v * (ARDUINO_WORK_VOLTAGE / 1024) * 5; double current = a * (ARDUINO_WORK_VOLTAGE / 1024); w =  voltage*current;
-  double bvoltage = bv * (ARDUINO_WORK_VOLTAGE / 1024) * 5; double bcurrent = ba * (ARDUINO_WORK_VOLTAGE / 1024); bw =  bvoltage*bcurrent;
+  double voltage = v * (ARDUINO_WORK_VOLTAGE / 1024) * 5; 
+  double current = a * (ARDUINO_WORK_VOLTAGE / 1024); 
+  w =  voltage*current;
+  double bvoltage = bv * (ARDUINO_WORK_VOLTAGE / 1024) * 5; 
+  double bcurrent = ba * (ARDUINO_WORK_VOLTAGE / 1024); 
+  bw =  bvoltage*bcurrent;
   // 濕溫度
-  float temperature = 0, humidity = 0;
+  //byte temperature = 0, humidity = 0; //DHT11
+  float temperature = 0, humidity = 0; //DHT22
+  int err = SimpleDHTErrSuccess;
+  if ((err = dht22.read2(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
+    Serial.print("Read DHT22 failed, err="); Serial.print(SimpleDHTErrCode(err));
+    Serial.print(","); Serial.println(SimpleDHTErrDuration(err)); delay(1000);
+    return;
+  }
   
-
   // BT傳輸(電源-電壓電流瓦數=>電池電壓電流瓦數=>日照溫度濕度)
   String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (z) + ";" + String (temperature) + ";" + String (humidity);
   SerialBT.println(data);
@@ -72,31 +86,22 @@ void loop() {
   // 紅外
   int moving = digitalRead(PIR_PIN);
   if (moving == HIGH) { 
-    Serial.println("有人");
+    //Serial.println("有人");
     digitalWrite(relayPin, LOW);
     //delay(2000);  
   } else {
-    Serial.println("沒人！"); 
+    //Serial.println("沒人！"); 
     digitalWrite(relayPin, HIGH);
   }
   
 //Debug
   Serial.println("=================================");
-  //Serial.print("樣品 OK ");
   //Serial.print((float)temperature); Serial.print(" C, ");
   //Serial.print((float)humidity); Serial.print(" RH%, ");
-  // Serial.println(" s");
-  /*
-  int err = SimpleDHTErrSuccess;
-  if ((err = dht22.read2(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
-    Serial.print("DHT22讀取失敗, Error="); Serial.print(SimpleDHTErrCode(err));
-    Serial.print(","); Serial.println(SimpleDHTErrDuration(err)); 
-    delay(2000);
-    return;
-  }
-  */
-  
-  
+  //Serial.println(" s");
+  Serial.println("電源:"); Serial.println(voltage); Serial.println(current); Serial.println(w);
+  Serial.println("電池:"); Serial.println(bvoltage); Serial.println(bcurrent); Serial.println(bw);
+
   // 更新OLED
   OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w, bvoltage, bcurrent, bw);
   
