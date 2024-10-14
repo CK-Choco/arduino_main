@@ -33,6 +33,8 @@ int relayPin = 4;
 #define BVT_PIN 18
 #define BAT_PIN 19
 #define ARDUINO_WORK_VOLTAGE 5.0
+// 光敏
+#define Ph_pin 32
 
 void setup() {
   u8g2.begin(); u8g2.enableUTF8Print();  //啟用UTF8文字的功能
@@ -56,6 +58,9 @@ void setup() {
 void loop() {
   // 開機後時間
   int secs = (millis() - startTime) / 1000;
+  // 光敏
+  int y = analogRead(Ph_pin);
+  double L = 4095 - y;
   // 電源-電壓電流
   int v = analogRead(VT_PIN);
   int a = analogRead(AT_PIN);
@@ -80,7 +85,7 @@ void loop() {
   }
   
   // BT傳輸(電源-電壓電流瓦數=>電池電壓電流瓦數=>日照溫度濕度)
-  String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (z) + ";" + String (temperature) + ";" + String (humidity);
+  String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (L) + ";" + String (temperature) + ";" + String (humidity);
   SerialBT.println(data);
   
   // 紅外
@@ -99,16 +104,16 @@ void loop() {
   //Serial.print((float)temperature); Serial.print(" C, ");
   //Serial.print((float)humidity); Serial.print(" RH%, ");
   //Serial.println(" s");
-  Serial.println("電源:"); Serial.println(voltage); Serial.println(current); Serial.println(w);
+  Serial.println("電源:"); Serial.println(v); Serial.println(a); Serial.println(w);
   Serial.println("電池:"); Serial.println(bvoltage); Serial.println(bcurrent); Serial.println(bw);
 
   // 更新OLED
-  OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w, bvoltage, bcurrent, bw);
+  OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w, bvoltage, bcurrent, bw, L);
   
   delay(750);
 }
 
-void OLEDOutput(int page, float temperature, float humidity, int secs, double voltage, double current, int w, double bvoltage, double bcurrent, int bw) {
+void OLEDOutput(int page, float temperature, float humidity, int secs, double voltage, double current, int w, double bvoltage, double bcurrent, int bw, int L) {
   u8g2.setFont(u8g2_font_unifont_t_chinese1); // 使用字型
   u8g2.firstPage();
   do {
@@ -127,6 +132,11 @@ void OLEDOutput(int page, float temperature, float humidity, int secs, double vo
       u8g2.setCursor(0, 14); u8g2.print("b電壓"); u8g2.setCursor(45, 14); u8g2.print(bvoltage);
       u8g2.setCursor(0, 32); u8g2.print("b電流"); u8g2.setCursor(45, 32); u8g2.print(bcurrent); 
       u8g2.setCursor(0, 50); u8g2.print("bW"); u8g2.setCursor(45, 50); u8g2.print(bw);
+    } else if (page == 4) {
+      // 第三頁
+      u8g2.setCursor(0, 14); u8g2.print("L"); u8g2.setCursor(45, 14); u8g2.print(L);
+      u8g2.setCursor(0, 32); u8g2.print(" "); u8g2.setCursor(45, 32); u8g2.print(" "); 
+      u8g2.setCursor(0, 50); u8g2.print(" "); u8g2.setCursor(45, 50); u8g2.print(" ");
     }
   } while (u8g2.nextPage());
 }
@@ -139,7 +149,7 @@ void ClockChanged() {
     // 根據旋轉放向上下頁
     currentPage += (clkValue != dtValue ? 1 : -1); 
     // 確保當前頁面在有效範圍
-    currentPage = constrain(currentPage, 1, 3);
+    currentPage = constrain(currentPage, 1, 4);
 
     Serial.print("Current Page: ");
     Serial.println(currentPage);
