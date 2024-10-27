@@ -101,7 +101,7 @@ void loop() {
     return;
   }
   
-  // BT傳輸(電源-電壓電流瓦數=>電池電壓電流瓦數=>日照溫度濕度)
+  // BT傳輸(電源-電壓電流瓦數=>電池-電壓電流瓦數=>日照溫度濕度)
   String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (L) + ";" + String (temperature) + ";" + String (humidity);
   SerialBT.println(data);
   
@@ -172,7 +172,5 @@ void ClockChanged() {
     currentPage += (clkValue != dtValue ? 1 : -1); 
     // 確保當前頁面在有效範圍
     currentPage = constrain(currentPage, 1, 4);
-
-    //Serial.print("Current Page: ");Serial.println(currentPage);
   }
 }
