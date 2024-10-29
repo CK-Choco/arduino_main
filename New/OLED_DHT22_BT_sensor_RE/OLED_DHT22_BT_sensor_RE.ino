@@ -75,7 +75,7 @@ void loop() {
 
   // 光敏
   int y = 0; y = analogRead(Ph_pin);
-  double L = 4096 - y;
+  double L = 4095 - y; //ESP32=>4095 Arduino=>1023
   
   // 電源-電壓電流
   int v = analogRead(VT_PIN);
@@ -87,8 +87,8 @@ void loop() {
   // 電池-電壓電流
   int bv = analogRead(BVT_PIN);
   int ba = analogRead(BAT_PIN);
-  float bvoltage = bv * (ARDUINO_WORK_VOLTAGE / 1024); 
-  float bcurrent = ba * (ARDUINO_WORK_VOLTAGE / 1024); 
+  float bvoltage = bv * (ARDUINO_WORK_VOLTAGE / 1023); 
+  float bcurrent = ba * (ARDUINO_WORK_VOLTAGE / 1023); 
   int bw =  bvoltage*bcurrent;
  
   // 濕溫度
@@ -96,8 +96,8 @@ void loop() {
   //dht22.read2(&temperature, &humidity, NULL);
   int err = SimpleDHTErrSuccess;
   if ((err = dht22.read2(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
-    Serial.print("Read DHT22 failed, err="); Serial.print(SimpleDHTErrCode(err));
-    Serial.print(","); Serial.println(SimpleDHTErrDuration(err)); delay(1000);
+    //Serial.print("Read DHT22 failed, err="); Serial.print(SimpleDHTErrCode(err));
+    /*Serial.print(","); Serial.println(SimpleDHTErrDuration(err));*/ delay(500);
     return;
   }
   
@@ -115,20 +115,24 @@ void loop() {
       digitalWrite(relayPin, LOW);
       digitalWrite(led_pin, LOW);
     }
+  } else {
+      digitalWrite(relayPin, LOW);
+      digitalWrite(led_pin, LOW);
   }
   
   // 更新OLED
   OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w, bvoltage, bcurrent, bw, L);
   
   // 序列監控視窗Debug
-  Debug(temperature, humidity, voltage, current, w, bvoltage, bcurrent, bw, L);
+  Debug(temperature, humidity, voltage, current, w, bvoltage, bcurrent, bw, L, y);
   
   delay(750); //暫停0.75秒
 }
 
-void Debug(float temperature, float humidity, double voltage, double current, int w, double bvoltage, double bcurrent, int bw, int L){
+void Debug(float temperature, float humidity, double voltage, double current, int w, double bvoltage, double bcurrent, int bw, int L, int y){
   Serial.println("=================================");
   Serial.print("日照:"); Serial.print(L);
+  Serial.print("最大光偶:"); Serial.print(y);
   Serial.print("溫度:"); Serial.print((float)temperature);
   Serial.print("濕度:"); Serial.println((float)humidity);
   Serial.println("電源:"); Serial.println(voltage); Serial.println(current); Serial.println(w);
