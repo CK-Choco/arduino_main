@@ -42,7 +42,7 @@ const int VT_PIN = 36; //連接 ESP32 pin 36
 const int AT_PIN = 39; //連接 ESP32 pin 39
 const int BVT_PIN = 34; //連接 ESP32 pin 34
 const int BAT_PIN = 35; //連接 ESP32 pin 35
-#define ARDUINO_WORK_VOLTAGE 5.0
+#define WORK_VOLTAGE 5.0
 
 // 光敏
 #define Ph_pin 32 // 光敏連接 ESP32 pin 32
@@ -80,29 +80,30 @@ void loop() {
   // 電源-電壓電流
   int v = analogRead(VT_PIN);
   int a = analogRead(AT_PIN);
-  float voltage = v * (ARDUINO_WORK_VOLTAGE / 1024); 
-  float current = a * (ARDUINO_WORK_VOLTAGE / 1024); 
+  // WORK_VOLTAGE=>工作電壓 5V
+  float voltage = v * (WORK_VOLTAGE / 1023); 
+  float current = a * (WORK_VOLTAGE / 1023); 
   int w =  voltage*current;
 
   // 電池-電壓電流
   int bv = analogRead(BVT_PIN);
   int ba = analogRead(BAT_PIN);
-  float bvoltage = bv * (ARDUINO_WORK_VOLTAGE / 1023); 
-  float bcurrent = ba * (ARDUINO_WORK_VOLTAGE / 1023); 
+  float bvoltage = bv * (WORK_VOLTAGE / 1023); 
+  float bcurrent = ba * (WORK_VOLTAGE / 1023); 
   int bw =  bvoltage*bcurrent;
  
   // 濕溫度
   float temperature = 0, humidity = 0; //DHT22
-  //dht22.read2(&temperature, &humidity, NULL);
   int err = SimpleDHTErrSuccess;
   if ((err = dht22.read2(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
     //Serial.print("Read DHT22 failed, err="); Serial.print(SimpleDHTErrCode(err));
-    /*Serial.print(","); Serial.println(SimpleDHTErrDuration(err));*/ delay(500);
+    //Serial.print(","); Serial.println(SimpleDHTErrDuration(err)); 
+    delay(500);
     return;
   }
   
   // BT傳輸(電源-電壓電流瓦數=>電池-電壓電流瓦數=>日照溫度濕度)
-  String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (L) + ";" + String (temperature) + ";" + String (humidity);
+  String data = String (voltage) + ";" + String (current) + ";" + String (w) + ";" + String (bvoltage) + ";" + String (bcurrent) + ";" + String (bw) + ";" + String (L) + ";" + String (temperature) + ";" + String (humidity) + ";";
   SerialBT.println(data);
   
   // 紅外
