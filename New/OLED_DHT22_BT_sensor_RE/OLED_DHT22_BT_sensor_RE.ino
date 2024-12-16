@@ -42,7 +42,7 @@ const int VT_PIN = 36; //連接 ESP32 pin 36
 const int AT_PIN = 39; //連接 ESP32 pin 39
 const int BVT_PIN = 34; //連接 ESP32 pin 34
 const int BAT_PIN = 35; //連接 ESP32 pin 35
-#define WORK_VOLTAGE 5.0
+#define WORK_VOLTAGE 4.3
 
 // 光敏
 #define Ph_pin 32 // 光敏連接 ESP32 pin 32
@@ -75,7 +75,7 @@ void loop() {
 
   // 光敏
   int y = 0; y = analogRead(Ph_pin);
-  double L = 4095 - y; //ESP32=>4095 Arduino=>1023
+  double L = (4095 - y)/4; //ESP32=>4095 Arduino=>1023
   
   // 電源-電壓電流
   int v = analogRead(VT_PIN);
@@ -108,7 +108,7 @@ void loop() {
   
   // 紅外
   int moving = digitalRead(PIR_PIN);
-  if (L < 2000){
+  if (L < 300){
     if (moving == 1) { 
       digitalWrite(relayPin, HIGH); 
       digitalWrite(led_pin, HIGH);
@@ -125,17 +125,18 @@ void loop() {
   OLEDOutput(currentPage, temperature, humidity, secs, voltage, current, w, bvoltage, bcurrent, bw, L);
   
   // 序列監控視窗Debug
-  Debug(temperature, humidity, voltage, current, w, bvoltage, bcurrent, bw, L, y);
+  Debug(temperature, humidity, voltage, current, w, bvoltage, bcurrent, bw, L, y, v);
   
   delay(750); //暫停0.75秒
 }
 
-void Debug(float temperature, float humidity, double voltage, double current, int w, double bvoltage, double bcurrent, int bw, int L, int y){
+void Debug(float temperature, float humidity, double voltage, double current, int w, double bvoltage, double bcurrent, int bw, int L, int y, int v){
   Serial.println("=================================");
   Serial.print("日照:"); Serial.print(L);
   Serial.print("最大光偶:"); Serial.print(y);
   Serial.print("溫度:"); Serial.print((float)temperature);
   Serial.print("濕度:"); Serial.println((float)humidity);
+  Serial.println("v電源:"); Serial.println(v);
   Serial.println("電源:"); Serial.println(voltage); Serial.println(current); Serial.println(w);
   Serial.println("電池:"); Serial.println(bvoltage); Serial.println(bcurrent); Serial.println(bw);
   }
@@ -174,7 +175,7 @@ void ClockChanged() {
   if (lastCLK != clkValue) {
     lastCLK = clkValue;
     // 根據旋轉放向上下頁
-    currentPage += (clkValue != dtValue ? 1 : -1); 
+    currentPage += (clkValue != dtValue ? -1 : 1); 
     // 確保當前頁面在有效範圍
     currentPage = constrain(currentPage, 1, 4);
   }
